@@ -12,23 +12,31 @@ Discord webhooks.
 
 ### Installation option 1 (Requires Git + Python 3.6 or newer)
 
-Clone TKLserver repository with:
+1. Clone TKLServer repository:
 
-`git clone https://github.com/tuokri/tklserver`
+    `git clone https://github.com/tuokri/tklserver`
 
-Run the server:
+    `cd tklserver`
 
-`python run.py`
+2. Install requirements:
+
+    `pip install -r requirements`
+
+3. Run the TKLServer:
+
+    `python run.py`
+
+4. Start RS2: Vietnam game server with TKLMutator enabled.
 
 ### Installation option 2 (Download executable)
 
-STANDALONE SERVER EXECUTABLE (.exe) COMING SOON.
+STANDALONE TKLSERVER EXECUTABLE (.exe) COMING SOON.
 
 ### Configuration examples
 
 ##### 1 RS2 server and 1 Discord webhook URL
 
-1 RS2 game server process and 1 TKLServer process in the
+1 RS2: Vietnam game server process and 1 TKLServer process on the
 same dedicated server machine.
 
 ![1-server-1-webhook](1-server-1-webhook.png)
