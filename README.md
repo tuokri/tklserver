@@ -46,9 +46,9 @@ it over the old files.
 
 Double-check your settings in `tklserver.ini` after updating.
 
-### Configuration examples
+## Configuration examples
 
-#### One RS2 server and one Discord webhook URL
+### One RS2 server and one Discord webhook URL
 
 One RS2: Vietnam game server process and one TKLServer process on the
 same dedicated server machine.
