@@ -29,14 +29,16 @@ do not support HTTPS, which is required for Discord webhooks.
 
 4. Start RS2: Vietnam game server with TKLMutator enabled.
 
-## Installation option 2 (download repository zip)
+## Installation option 2 (download repository zip, Python 3.6 or newer required)
 
 1. Download [repository package (zip)](https://github.com/tuokri/tklserver/archive/master.zip)
 and extract it. Then follow the same steps as option 1 but ignore the `git clone` command.
 
-## Installation option 3 (download executable)
+## Installation option 3 (download executable, no Python or Git needed)
 
-STANDALONE TKLSERVER EXECUTABLE (.exe) COMING SOON.
+1. Download latest package from [releases](https://github.com/tuokri/tklserver/releases).
+
+2. Extract it and run `tklserver.exe`.
 
 ## Updating
 
