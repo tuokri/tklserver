@@ -10,6 +10,20 @@ for server administrators.
 **A:** RS2: Vietnam mods do not support HTTPS, which is required for
 Discord webhooks.
 
+### Installation option 1 (Requires Git + Python 3.6 or newer)
+
+Clone TKLserver repository with:
+
+`git clone https://github.com/tuokri/tklserver`
+
+Run the server:
+
+`python run.py`
+
+### Installation option 2 (Download executable)
+
+STANDALONE SERVER EXECUTABLE (.exe) COMING SOON.
+
 ### Configuration examples
 
 ##### 1 RS2 server and 1 Discord webhook URL
