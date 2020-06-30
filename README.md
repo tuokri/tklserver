@@ -1,16 +1,17 @@
 # TKLServer - Discord webhook integration for TKLMutator
 
-Server for [TKLMutator](https://github.com/tuokri/rs2-tklogging)
-for Discord webhook integration.
-TKLMutator is a Rising Storm 2: Vietnam server mutator, which provides utilities 
-for server administrators.
+TKLServer is a server for [TKLMutator](https://github.com/tuokri/rs2-tklogging)
+for Discord webhook integration. TKLServer could also be called a Discord bot as it
+serves a similar purpose.
+TKLMutator is a Rising Storm 2: Vietnam server mutator, which provides kill logging
+utilities for server administrators.
 
 **Q:** Why is TKLServer needed?
 
-**A:** RS2: Vietnam mods do not support HTTPS, which is required for
-Discord webhooks.
+**A:** RS2: Vietnam mods (or rather the Unreal Engine version the game uses)
+do not support HTTPS, which is required for Discord webhooks.
 
-### Installation option 1 (Requires Git + Python 3.6 or newer)
+## Installation option 1 (requires Git + Python 3.6 or newer)
 
 1. Clone TKLServer repository:
 
@@ -28,15 +29,28 @@ Discord webhooks.
 
 4. Start RS2: Vietnam game server with TKLMutator enabled.
 
-### Installation option 2 (Download executable)
+## Installation option 2 (download repository zip)
+
+1. Download [repository package (zip)](https://github.com/tuokri/tklserver/archive/master.zip)
+and extract it. Then follow the same steps as option 1 but ignore the `git clone` command.
+
+## Installation option 3 (download executable)
 
 STANDALONE TKLSERVER EXECUTABLE (.exe) COMING SOON.
 
+## Updating
+
+If you used Git to install TKLServer, do a `git pull` in the TKLServer directory.
+Alternatively you can just download the newest one and extract
+it over the old files.
+
+Double-check your settings in `tklserver.ini` after updating.
+
 ### Configuration examples
 
-##### 1 RS2 server and 1 Discord webhook URL
+#### One RS2 server and one Discord webhook URL
 
-1 RS2: Vietnam game server process and 1 TKLServer process on the
+One RS2: Vietnam game server process and one TKLServer process on the
 same dedicated server machine.
 
 ![1-server-1-webhook](1-server-1-webhook.png)
@@ -72,3 +86,7 @@ This needs to change only when support for multiple RS2: Vietnam game servers is
 `TKLServerPort` in **ROGame_TKLMutator.ini** must match `port` in **tklserver.ini**.
 
 `bSendLogToServer` must be `True` in **ROGame_TKLMutator.ini**.
+
+---
+
+**More configuration examples coming soon.**
