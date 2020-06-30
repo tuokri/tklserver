@@ -66,13 +66,13 @@ class TKLRequestHandler(BaseRequestHandler):
                         sender=self.client_address)
                     self.request.close()
                     break
+                data = str(data, encoding="utf-8")
                 ident = data[:4]
                 data = data[4:]
                 logger.debug("{i}: {data}", i=ident, data=data)
                 if ident in self.server.discord_config:
                     wh_id, wh_token = self.server.discord_config[ident]
-                    msg = data.decode("utf-8")
-                    send_webhook_message(wh_id, wh_token, msg)
+                    send_webhook_message(wh_id, wh_token, data)
                 else:
                     logger.error("server unique ID {i} not in Discord config", i=ident)
         except (ConnectionError, socket.error) as e:
