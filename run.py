@@ -129,17 +129,18 @@ def main():
 
     try:
         server_config = config["tklserver"]
-        listen_port = server_config.getint("listen_port")
-        if not listen_port:
-            logger.error("listen_port not set, exiting...")
+        port = server_config.getint("port")
+        host = server_config["host"]
+        if not port:
+            logger.error("port not set, exiting...")
             sys.exit(-1)
     except (ValueError, KeyError) as e:
-        logger.debug("invalid listen_port: {e}", e=e, exc_info=True)
-        logger.error("invalid listen_port, exiting...")
+        logger.debug("invalid config: {e}", e=e, exc_info=True)
+        logger.error("invalid config, exiting...")
         sys.exit(-1)
 
     stop_event = threading.Event()
-    addr = ("127.0.0.1", listen_port)
+    addr = (host, port)
     server = None
     try:
         server = TKLServer(addr, TKLRequestHandler, stop_event=stop_event,
