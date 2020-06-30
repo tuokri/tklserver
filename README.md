@@ -41,7 +41,7 @@ same dedicated server machine.
 
 ![1-server-1-webhook](1-server-1-webhook.png)
 
-**tklserver.ini**
+**tklserver.ini** (in tklserver directory)
 ```ini
 [tklserver]
 port=8586
@@ -51,7 +51,7 @@ host=localhost
 webhook_url=YOUR_SECRET_DISCORD_WEBHOOK_URL_HERE
 ```
 
-**ROGame_TKLMutator.ini**
+**ROGame_TKLMutator.ini** (in RS2 server directory under `ROGame\Config`)
 ```ini
 [TKLMutator.TKLMutator]
 bLogTeamKills=True
