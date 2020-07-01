@@ -67,7 +67,9 @@ host=localhost
 webhook_url=YOUR_SECRET_DISCORD_WEBHOOK_URL_HERE
 ```
 
-**ROGame_TKLMutator.ini** (in RS2 server directory under `ROGame\Config`)
+**ROMutator_TKLMutator_Server.ini** (in RS2 server directory under `ROGame\Config`).
+If the file does not exists, launch RS2 game server once with TKLMutator enabled.
+
 ```ini
 [TKLMutator.TKLMutator]
 bLogTeamKills=True
