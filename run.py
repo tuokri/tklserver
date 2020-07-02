@@ -27,7 +27,7 @@ logger = Logger("tklserver")
 STEAM_PROFILE_URL = "https://www.steamcommunity.com/profiles/{id}"
 DATE_FMT = "%Y/%m/%d - %H:%M:%S"
 TKL_MSG_PAT = re.compile(
-    r"(\([0-9]{4}/[0-9]{2}/[0-9]{2}\s-\s[0-9]{2}:[0-9]{2}:[0-9]{2}\))\s'(.+)'\s"
+    r"\(([0-9]{4}/[0-9]{2}/[0-9]{2}\s-\s[0-9]{2}:[0-9]{2}:[0-9]{2})\)\s'(.+)'\s"
     r"\[(0x[0-9a-fA-F]+)\]\s(killed|teamkilled)\s'(.+)'\s\[(0x[0-9a-fA-F]+)\]\swith\s<(.+)>")
 
 
@@ -65,7 +65,7 @@ class TKLRequestHandler(BaseRequestHandler):
                 logger.warn("message does not match pattern")
             else:
                 date = groups[0]
-                isodate = datetime.datetime.strptime(date, DATE_FMT).isoformat()
+                isodate = datetime.datetime.strptime(date, DATE_FMT)
 
                 killer = groups[1]
                 killer_id = int(groups[2], 16)
@@ -92,6 +92,19 @@ class TKLRequestHandler(BaseRequestHandler):
                     "suicide": 9807270,
                 }[action]
 
+                if killer_id == 0:
+                    killer_id_link = "BOT"
+                else:
+                    killer_id_link = f"[{killer_id}]({killer_profile})"
+                if killed_id == 0:
+                    killed_id_link = "BOT"
+                else:
+                    killed_id_link = f"[{killed_id}]({killed_profile})"
+
+                # Both are bots. Avoid false "Suicide".
+                if (killed_id == 0) and (killer_id == 0):
+                    action_formatted = "Bot Killed Bot"
+
                 embed = discord.Embed(
                     title=action_formatted,
                     timestamp=isodate,
@@ -105,17 +118,19 @@ class TKLRequestHandler(BaseRequestHandler):
                     value=killed,
                     inline=True,
                 ).add_field(
-                    name=discord.Embed.Empty,
-                    value=discord.Embed.Empty,
-                    inline=False,
+                    name="\u200b",
+                    value="\u200b",
                 ).add_field(
                     name="Killer ID",
-                    value=f"[{killer_id}]({killer_profile})",
+                    value=killer_id_link,
                     inline=True,
                 ).add_field(
                     name="Victim ID",
-                    value=f"[{killed_id}]({killed_profile})",
+                    value=killed_id_link,
                     inline=True,
+                ).add_field(
+                    name="\u200b",
+                    value="\u200b",
                 ).add_field(
                     name="Damage Type",
                     value=damage_type,
@@ -125,17 +140,17 @@ class TKLRequestHandler(BaseRequestHandler):
             logger.error("error creating embed message: {e}",
                          e=e, exc_info=True)
 
-        webhook_id = self.server.discord_config["ident"][0]
-        webhook_token = self.server.discord_config["ident"][1]
+        webhook_id = self.server.discord_config[ident][0]
+        webhook_token = self.server.discord_config[ident][1]
         webhook = Webhook.partial(
             id=webhook_id, token=webhook_token, adapter=RequestsWebhookAdapter()
         )
 
         if embed is not None:
-            logger.info("sending webhook message for {i}", i=ident)
+            logger.info("sending webhook embed for {i}", i=ident)
             webhook.send(embed=embed)
         else:
-            logger.info("sending webhook embed for {i}", i=ident)
+            logger.info("sending webhook message for {i}", i=ident)
             webhook.send(content=msg)
 
     def handle(self):
@@ -155,8 +170,7 @@ class TKLRequestHandler(BaseRequestHandler):
                 data = data[4:]
                 logger.debug("{i}: {data}", i=ident, data=data)
                 if ident in self.server.discord_config:
-                    wh_id, wh_token = self.server.discord_config[ident]
-                    send_webhook_message(wh_id, wh_token, data)
+                    self.execute_webhook(ident, data)
                 else:
                     logger.error("server unique ID {i} not in Discord config", i=ident)
         except (ConnectionError, socket.error) as e:
@@ -165,17 +179,6 @@ class TKLRequestHandler(BaseRequestHandler):
         except Exception as e:
             logger.error("error when handling request from {addr}: {e}",
                          addr=self.client_address, e=e)
-
-
-def send_webhook_message(webhook_id: int, webhook_token: str, message: str):
-    message = discord.utils.escape_mentions(message)
-    message = discord.utils.escape_markdown(message)
-
-    webhook = Webhook.partial(
-        id=webhook_id, token=webhook_token, adapter=RequestsWebhookAdapter()
-    )
-    logger.info("sending chat message to Discord length={lm}", lm=len(message))
-    webhook.send(message)
 
 
 def parse_webhook_url(url: str) -> Tuple[int, str]:
