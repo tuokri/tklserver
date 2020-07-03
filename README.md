@@ -21,7 +21,7 @@ do not support HTTPS, which is required for Discord webhooks.
 
 2. Install requirements:
 
-    `pip install -r requirements`
+    `pip install -r requirements.txt`
 
 3. Run the TKLServer:
 
