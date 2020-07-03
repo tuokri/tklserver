@@ -5,12 +5,14 @@ import sys
 import threading
 from collections import defaultdict
 from configparser import ConfigParser
-from socketserver import BaseRequestHandler
+from socketserver import StreamRequestHandler
 from socketserver import ThreadingTCPServer
 from typing import Optional
 from typing import Tuple
 
 import discord
+import logbook
+import pytz
 import requests
 from discord import RequestsWebhookAdapter
 from discord import Webhook
@@ -23,12 +25,15 @@ StreamHandler(
 RotatingFileHandler(
     "tklserver.log", level="INFO", bubble=True).push_application()
 logger = Logger("tklserver")
+logbook.set_datetime_format("local")
 
 STEAM_PROFILE_URL = "https://www.steamcommunity.com/profiles/{id}"
 DATE_FMT = "%Y/%m/%d - %H:%M:%S"
 TKL_MSG_PAT = re.compile(
     r"\(([0-9]{4}/[0-9]{2}/[0-9]{2}\s-\s[0-9]{2}:[0-9]{2}:[0-9]{2})\)\s'(.+)'\s"
     r"\[(0x[0-9a-fA-F]+)\]\s(killed|teamkilled)\s'(.+)'\s\[(0x[0-9a-fA-F]+)\]\swith\s<(.+)>")
+SEP = "\n\r"
+BSEP = SEP.encode("utf-8")
 
 
 class TKLServer(ThreadingTCPServer):
@@ -49,7 +54,7 @@ class TKLServer(ThreadingTCPServer):
         return self._discord_config
 
 
-class TKLRequestHandler(BaseRequestHandler):
+class TKLRequestHandler(StreamRequestHandler):
     def __init__(self, request, client_address, server: TKLServer):
         self.server: TKLServer = server
         super().__init__(request, client_address, server)
@@ -65,7 +70,8 @@ class TKLRequestHandler(BaseRequestHandler):
                 logger.warn("message does not match pattern")
             else:
                 date = groups[0]
-                isodate = datetime.datetime.strptime(date, DATE_FMT)
+                date = datetime.datetime.strptime(date, DATE_FMT)
+                date = date.astimezone(pytz.utc)
 
                 killer = groups[1]
                 killer_id = int(groups[2], 16)
@@ -107,7 +113,7 @@ class TKLRequestHandler(BaseRequestHandler):
 
                 embed = discord.Embed(
                     title=action_formatted,
-                    timestamp=isodate,
+                    timestamp=date,
                     color=color,
                 ).add_field(
                     name="Killer",
@@ -158,14 +164,15 @@ class TKLRequestHandler(BaseRequestHandler):
             logger.info("connection opened from: {sender}",
                         sender=self.client_address)
             while not self.server.stop_requested:
-                data = self.request.recv(1024)
+                data = self.rfile.readline()
                 if data.startswith(b"\x00") or not data:
                     logger.info(
                         "received quit request from {sender}, closing connection",
                         sender=self.client_address)
-                    self.request.close()
                     break
-                data = str(data, encoding="utf-8")
+                logger.debug("raw data: {data}", data=data)
+
+                data = str(data, encoding="utf-8").strip()
                 ident = data[:4]
                 data = data[4:]
                 logger.debug("{i}: {data}", i=ident, data=data)
