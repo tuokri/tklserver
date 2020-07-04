@@ -32,8 +32,6 @@ DATE_FMT = "%Y/%m/%d - %H:%M:%S"
 TKL_MSG_PAT = re.compile(
     r"\(([0-9]{4}/[0-9]{2}/[0-9]{2}\s-\s[0-9]{2}:[0-9]{2}:[0-9]{2})\)\s'(.+)'\s"
     r"\[(0x[0-9a-fA-F]+)\]\s(killed|teamkilled)\s'(.+)'\s\[(0x[0-9a-fA-F]+)\]\swith\s<(.+)>")
-SEP = "\n\r"
-BSEP = SEP.encode("utf-8")
 
 
 class TKLServer(ThreadingTCPServer):
@@ -61,6 +59,9 @@ class TKLRequestHandler(StreamRequestHandler):
 
     def execute_webhook(self, ident: str, msg: str):
         # TODO: embed kill weapon image.
+
+        msg = discord.utils.escape_mentions(msg)
+        msg = discord.utils.escape_markdown(msg)
 
         embed: Optional[discord.Embed] = None
         try:
