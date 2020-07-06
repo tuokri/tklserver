@@ -6,6 +6,8 @@ serves a similar purpose.
 TKLMutator is a Rising Storm 2: Vietnam server mutator, which provides kill logging
 utilities for server administrators.
 
+![Discord examples](discord_example.png)
+
 **Q:** Why is TKLServer needed?
 
 **A:** RS2: Vietnam mods (or rather the Unreal Engine version the game uses)
