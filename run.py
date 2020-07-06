@@ -1,10 +1,15 @@
+import base64
 import datetime
+import io
+import json
 import re
 import socket
 import sys
 import threading
+import zlib
 from collections import defaultdict
 from configparser import ConfigParser
+from pathlib import Path
 from socketserver import StreamRequestHandler
 from socketserver import ThreadingTCPServer
 from typing import Optional
@@ -14,6 +19,7 @@ import discord
 import logbook
 import pytz
 import requests
+from PIL import Image
 from discord import RequestsWebhookAdapter
 from discord import Webhook
 from logbook import Logger
@@ -34,14 +40,48 @@ TKL_MSG_PAT = re.compile(
     r"\[(0x[0-9a-fA-F]+)\]\s(killed|teamkilled)\s'(.+)'\s\[(0x[0-9a-fA-F]+)\]\swith\s<(.+)>")
 
 
+class ImageCache:
+    def __init__(self, image_package: Path):
+        self._cache = {}
+        with image_package.open("rb") as f:
+            data = f.read()
+            data_decomp = zlib.decompress(data)
+            self._cache = json.loads(data_decomp)
+
+    def __getitem__(self, item):
+        if item is None:
+            item = "__DEFAULT"
+
+        image = self._cache[item]
+        if isinstance(image, io.BytesIO):
+            logger.info("returning cached image for: {i}", i=item)
+            image.seek(0)
+            return image
+
+        if image.startswith("__"):
+            image = image.split("__")[1]
+            return self.__getitem__(image)
+
+        logger.info("loading image for: {i}", i=item)
+        b64_img = io.BytesIO(base64.b64decode(image))
+        pil_image = Image.open(b64_img)
+        png_image = io.BytesIO()
+        pil_image.save(png_image, "PNG")
+        self._cache[item] = png_image
+        png_image.seek(0)
+        return png_image
+
+
 class TKLServer(ThreadingTCPServer):
     daemon_threads = True
 
     def __init__(self, *args, stop_event: threading.Event,
-                 discord_config: dict, **kwargs):
+                 discord_config: dict, image_cache: ImageCache,
+                 **kwargs):
         super().__init__(*args, **kwargs)
         self._stop_event = stop_event
         self._discord_config = discord_config
+        self.image_cache = image_cache
 
     @property
     def stop_requested(self) -> bool:
@@ -58,12 +98,9 @@ class TKLRequestHandler(StreamRequestHandler):
         super().__init__(request, client_address, server)
 
     def execute_webhook(self, ident: str, msg: str):
-        # TODO: embed kill weapon image.
-
-        msg = discord.utils.escape_mentions(msg)
-        msg = discord.utils.escape_markdown(msg)
-
         embed: Optional[discord.Embed] = None
+        damage_type = ""
+
         try:
             msg_match = TKL_MSG_PAT.match(msg)
             groups = msg_match.groups()
@@ -81,6 +118,11 @@ class TKLRequestHandler(StreamRequestHandler):
                 killed_id = int(groups[5], 16)
                 killed_profile = STEAM_PROFILE_URL.format(id=killed_id)
                 damage_type = groups[6]
+
+                killer = discord.utils.escape_mentions(killer)
+                killer = discord.utils.escape_markdown(killer)
+                killed = discord.utils.escape_markdown(killed)
+                killed = discord.utils.escape_markdown(killed)
 
                 action = groups[3]
                 if killed_id == killer_id:
@@ -155,7 +197,14 @@ class TKLRequestHandler(StreamRequestHandler):
 
         if embed is not None:
             logger.info("sending webhook embed for {i}", i=ident)
-            webhook.send(embed=embed)
+            try:
+                kill_icon = self.server.image_cache[damage_type]
+                image_file = discord.File(kill_icon, filename="image.png")
+                embed.set_image(url="attachment://image.png")
+                webhook.send(file=image_file, embed=embed)
+            except Exception as e:
+                logger.error(e, exc_info=True)
+                webhook.send(embed=embed)
         else:
             logger.info("sending webhook message for {i}", i=ident)
             webhook.send(content=msg)
@@ -222,6 +271,8 @@ def terminate(stop_event: threading.Event):
 def main():
     config = load_config()
 
+    image_cache = ImageCache(Path("kill_icons.zlib"))
+
     try:
         server_config = config["tklserver"]
         port = server_config.getint("port")
@@ -239,7 +290,8 @@ def main():
     server = None
     try:
         server = TKLServer(addr, TKLRequestHandler, stop_event=stop_event,
-                           discord_config=config["discord"])
+                           discord_config=config["discord"],
+                           image_cache=image_cache)
         logger.info("serving at: {host}:{port}", host=addr[0], port=addr[1])
         logger.info("press CTRL+C to shut down the server")
         server.serve_forever()
