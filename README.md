@@ -95,4 +95,4 @@ This needs to change only when support for multiple RS2: Vietnam game servers is
 
 ---
 
-**More configuration examples coming soon.**
+**More configuration examples (multi server configuration, etc.) may be added if there is demand.**
