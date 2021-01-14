@@ -121,7 +121,7 @@ class TKLRequestHandler(StreamRequestHandler):
 
                 killer = discord.utils.escape_mentions(killer)
                 killer = discord.utils.escape_markdown(killer)
-                killed = discord.utils.escape_markdown(killed)
+                killed = discord.utils.escape_mentions(killed)
                 killed = discord.utils.escape_markdown(killed)
 
                 action = groups[3]
