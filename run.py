@@ -76,7 +76,7 @@ class TKLServer(ThreadingTCPServer):
     daemon_threads = True
 
     def __init__(self, *args, stop_event: threading.Event,
-                 discord_config: dict, image_cache: ImageCache,
+                 discord_config: dict, image_cache: Optional[ImageCache] = None,
                  **kwargs):
         super().__init__(*args, **kwargs)
         self._stop_event = stop_event
@@ -90,6 +90,12 @@ class TKLServer(ThreadingTCPServer):
     @property
     def discord_config(self) -> dict:
         return self._discord_config
+
+    def get_kill_icon(self, damage_type: str):
+        try:
+            return self.image_cache[damage_type]
+        except KeyError:
+            return None
 
 
 class TKLRequestHandler(StreamRequestHandler):
@@ -198,13 +204,15 @@ class TKLRequestHandler(StreamRequestHandler):
         if embed is not None:
             logger.info("sending webhook embed for {i}", i=ident)
             try:
-                kill_icon = self.server.image_cache[damage_type]
-                image_file = discord.File(kill_icon, filename="image.png")
-                embed.set_image(url="attachment://image.png")
-                webhook.send(file=image_file, embed=embed)
+                kill_icon = self.server.get_kill_icon(damage_type)
+                if kill_icon:
+                    image_file = discord.File(kill_icon, filename="image.png")
+                    embed.set_image(url="attachment://image.png")
+                    webhook.send(file=image_file, embed=embed)
+                else:
+                    webhook.send(embed=embed)
             except Exception as e:
                 logger.error(e, exc_info=True)
-                webhook.send(embed=embed)
         else:
             logger.info("sending webhook message for {i}", i=ident)
             webhook.send(content=msg)
@@ -213,6 +221,7 @@ class TKLRequestHandler(StreamRequestHandler):
         try:
             logger.info("connection opened from: {sender}",
                         sender=self.client_address)
+
             while not self.server.stop_requested:
                 data = self.rfile.readline()
                 if data.startswith(b"\x00") or not data:
@@ -220,22 +229,27 @@ class TKLRequestHandler(StreamRequestHandler):
                         "received quit request from {sender}, closing connection",
                         sender=self.client_address)
                     break
+
                 logger.debug("raw data: {data}", data=data)
 
-                data = str(data, encoding="utf-8").strip()
+                data = str(data, encoding="latin-1").strip()
                 ident = data[:4]
                 data = data[4:]
                 logger.debug("{i}: {data}", i=ident, data=data)
+
                 if ident in self.server.discord_config:
                     self.execute_webhook(ident, data)
                 else:
                     logger.error("server unique ID {i} not in Discord config", i=ident)
+
         except (ConnectionError, socket.error) as e:
             logger.error("{sender}: connection error: {e}",
                          sender=self.client_address, e=e)
+
         except Exception as e:
             logger.error("error when handling request from {addr}: {e}",
                          addr=self.client_address, e=e)
+            logger.exception(e)
 
 
 def parse_webhook_url(url: str) -> Tuple[int, str]:
@@ -271,7 +285,14 @@ def terminate(stop_event: threading.Event):
 def main():
     config = load_config()
 
-    image_cache = ImageCache(Path("kill_icons.zlib"))
+    image_cache = None
+    image_cache_path = Path("kill_icons.zlib")
+    try:
+        logger.info(f"attempting to load image cache from: {image_cache_path.absolute()}")
+        image_cache = ImageCache(image_cache_path)
+        logger.info("image cache loaded successfully")
+    except Exception as e:
+        logger.exception(f"error loading image cache: {e}")
 
     try:
         server_config = config["tklserver"]
